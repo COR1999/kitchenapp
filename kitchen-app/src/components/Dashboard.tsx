@@ -3,6 +3,7 @@ import { Invoice } from '../types/invoice';
 import InvoiceCard from './InvoiceCard';
 import InvoiceDetails from './InvoiceDetails';
 import InvoiceScanner from './InvoiceScanner';
+import InvoiceEditor from './InvoiceEditor';
 import CreditNoteManager from './CreditNoteManager';
 import { useInvoices } from '../hooks/useInvoices';
 
@@ -11,13 +12,15 @@ const Dashboard: React.FC = () => {
     invoices, 
     creditNotes, 
     loading, 
-    addInvoice, 
+    addInvoice,
+    updateInvoice, 
     updateInvoiceItem, 
     getInvoiceStats,
     addCreditNote,
     applyCreditNoteToInvoice 
   } = useInvoices();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [currentTab, setCurrentTab] = useState<'invoices' | 'creditnotes'>('invoices');
   const [filter, setFilter] = useState<'all' | 'pending' | 'partially_delivered' | 'fully_delivered' | 'overdue'>('all');
@@ -51,6 +54,16 @@ const Dashboard: React.FC = () => {
       };
       setSelectedInvoice(updatedInvoice);
     }
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    setSelectedInvoice(null); // Close details modal if open
+  };
+
+  const handleSaveInvoice = (updatedInvoice: Invoice) => {
+    updateInvoice(updatedInvoice);
+    setEditingInvoice(null);
   };
 
   if (loading) {
@@ -182,6 +195,7 @@ const Dashboard: React.FC = () => {
                     key={invoice.id}
                     invoice={invoice}
                     onViewDetails={setSelectedInvoice}
+                    onEdit={handleEditInvoice}
                   />
                 ))}
               </div>
@@ -209,7 +223,16 @@ const Dashboard: React.FC = () => {
         <InvoiceDetails
           invoice={selectedInvoice}
           onUpdateItem={handleUpdateItem}
+          onEdit={handleEditInvoice}
           onClose={() => setSelectedInvoice(null)}
+        />
+      )}
+
+      {editingInvoice && (
+        <InvoiceEditor
+          invoice={editingInvoice}
+          onSave={handleSaveInvoice}
+          onCancel={() => setEditingInvoice(null)}
         />
       )}
     </div>

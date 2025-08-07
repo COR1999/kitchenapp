@@ -180,11 +180,23 @@ export const useInvoices = () => {
     }
   };
 
+  const updateInvoice = (updatedInvoice: Invoice) => {
+    const updatedInvoices = invoices.map(invoice => 
+      invoice.id === updatedInvoice.id ? updatedInvoice : invoice
+    );
+    
+    // Update the status based on delivery status
+    updateInvoiceStatus(updatedInvoice);
+    
+    saveInvoices(updatedInvoices);
+  };
+
   return {
     invoices,
     creditNotes,
     loading,
     addInvoice,
+    updateInvoice,
     updateInvoiceItem,
     deleteInvoice,
     getInvoiceStats,
