@@ -298,99 +298,160 @@ const Dashboard: React.FC = () => {
 
         {currentTab === 'invoices' ? (
           <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-sm font-medium text-gray-500">Total Invoices</div>
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-sm font-medium text-gray-500">Pending</div>
-                <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-sm font-medium text-gray-500">Partially Delivered</div>
-                <div className="text-2xl font-bold text-yellow-600">{stats.partiallyDelivered}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-sm font-medium text-gray-500">Fully Delivered</div>
-                <div className="text-2xl font-bold text-green-600">{stats.fullyDelivered}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-sm font-medium text-gray-500">Total Value</div>
-                <div className="text-2xl font-bold text-gray-900">${stats.totalValue.toFixed(2)}</div>
-              </div>
-            </div>
-
-            {/* Week Filter */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Filter by Week</label>
-                <div className="text-xs text-gray-500 text-right">
-                  {weekFilter === 'all' ? (
-                    `Showing ${filteredInvoices.length} invoices from all weeks`
-                  ) : (
-                    (() => {
-                      const weekRange = DateUtils.getWeekRangeByValue(weekFilter);
-                      return weekRange ? (
-                        <div>
-                          <div>{`${filteredInvoices.length} invoices from ${weekRange.label}`}</div>
-                          <div className="text-xs text-gray-400">{DateUtils.formatWeekRange(weekRange.start, weekRange.end)}</div>
-                        </div>
-                      ) : `${filteredInvoices.length} invoices`;
-                    })()
-                  )}
+            {/* Overview Summary Card */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6 border border-blue-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Invoice Overview</h3>
+                  <p className="text-sm text-gray-600">
+                    {weekFilter === 'current' ? 'This week\'s' : weekFilter === 'all' ? 'All time' : 'Selected period'} summary
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">${stats.totalValue.toFixed(2)}</div>
+                  <div className="text-sm text-gray-600">Total Value</div>
                 </div>
               </div>
-              <select
-                value={weekFilter}
-                onChange={(e) => setWeekFilter(e.target.value)}
-                className="w-full sm:w-64 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-              >
-                <option value="all">All Weeks</option>
-                {DateUtils.getWeekRanges(8).map((week) => (
-                  <option key={week.value} value={week.value}>
-                    {week.label} ({DateUtils.formatWeekRange(week.start, week.end)})
-                  </option>
-                ))}
-              </select>
+              
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Delivery Progress</span>
+                  <span>{stats.total > 0 ? Math.round(((stats.fullyDelivered + stats.partiallyDelivered) / stats.total) * 100) : 0}% processed</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="flex h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-green-500" 
+                      style={{ width: `${stats.total > 0 ? (stats.fullyDelivered / stats.total) * 100 : 0}%` }}
+                    ></div>
+                    <div 
+                      className="bg-yellow-500" 
+                      style={{ width: `${stats.total > 0 ? (stats.partiallyDelivered / stats.total) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900">{stats.total}</div>
+                  <div className="text-xs text-gray-500">Total</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600">{stats.fullyDelivered}</div>
+                  <div className="text-xs text-gray-500">Delivered</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-yellow-600">{stats.partiallyDelivered}</div>
+                  <div className="text-xs text-gray-500">Partial</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-orange-600">{stats.pending}</div>
+                  <div className="text-xs text-gray-500">Pending</div>
+                </div>
+              </div>
             </div>
 
-            {/* Status Filter Tabs */}
-            <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'pending', label: 'Pending' },
-                { key: 'partially_delivered', label: 'Partial' },
-                { key: 'fully_delivered', label: 'Complete' }
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilter(tab.key as any)}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    filter === tab.key
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* Filters Section */}
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                {/* Week Filter */}
+                <div className="flex-1 max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Time Period
+                  </label>
+                  <select
+                    value={weekFilter}
+                    onChange={(e) => setWeekFilter(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Time</option>
+                    {DateUtils.getWeekRanges(8).map((week) => (
+                      <option key={week.value} value={week.value}>
+                        {week.label} ({DateUtils.formatWeekRange(week.start, week.end)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Status Filter Pills */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: 'All', color: 'gray' },
+                    { key: 'pending', label: 'Pending', color: 'orange' },
+                    { key: 'partially_delivered', label: 'Partial', color: 'yellow' },
+                    { key: 'fully_delivered', label: 'Complete', color: 'green' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setFilter(tab.key as any)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        filter === tab.key
+                          ? `bg-${tab.color}-100 text-${tab.color}-800 ring-2 ring-${tab.color}-200`
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Results Summary */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-medium text-gray-900">{filteredInvoices.length}</span> invoice{filteredInvoices.length !== 1 ? 's' : ''}
+                  {weekFilter !== 'all' && (() => {
+                    const weekRange = DateUtils.getWeekRangeByValue(weekFilter);
+                    return weekRange ? ` from ${weekRange.label}` : '';
+                  })()}
+                  {filter !== 'all' && ` with ${filter.replace('_', ' ')} status`}
+                </p>
+              </div>
             </div>
+
 
             {/* Invoices Grid */}
             {filteredInvoices.length === 0 ? (
-              <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {filter === 'all' ? 'Get started by scanning your first invoice.' : `No ${filter.replace('_', ' ')} invoices found.`}
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {filter === 'all' ? 'No invoices found' : `No ${filter.replace('_', ' ')} invoices`}
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                  {filter === 'all' 
+                    ? 'Get started by scanning your first invoice or load some demo data to explore the features.'
+                    : `Try adjusting your filters or check a different time period.`
+                  }
                 </p>
+                {filter === 'all' && weekFilter === 'all' && (
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={() => setShowScanner(true)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Scan Your First Invoice</span>
+                    </button>
+                    <button
+                      onClick={loadDummyData}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    >
+                      Load Demo Data
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredInvoices.map((invoice) => (
                   <InvoiceCard
                     key={invoice.id}
