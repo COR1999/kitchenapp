@@ -1,0 +1,177 @@
+import React, { useState } from 'react';
+import { Invoice, InvoiceItem } from '../types/invoice';
+
+interface InvoiceDetailsProps {
+  invoice: Invoice;
+  onUpdateItem: (itemId: string, updates: Partial<InvoiceItem>) => void;
+  onClose: () => void;
+}
+
+const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({ 
+  invoice, 
+  onUpdateItem, 
+  onClose 
+}) => {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const markSelectedAsDelivered = () => {
+    selectedItems.forEach(itemId => {
+      onUpdateItem(itemId, { 
+        delivered: true, 
+        deliveryDate: new Date() 
+      });
+    });
+    setSelectedItems([]);
+  };
+
+  const toggleItemDelivery = (item: InvoiceItem) => {
+    onUpdateItem(item.id, {
+      delivered: !item.delivered,
+      deliveryDate: !item.delivered ? new Date() : undefined
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+        <div className="sticky top-0 bg-white border-b p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Invoice {invoice.invoiceNumber}
+              </h2>
+              <p className="text-gray-600">{invoice.supplier}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="space-y-2">
+              <div>
+                <span className="text-sm text-gray-500">Date:</span>
+                <span className="ml-2">{new Date(invoice.date).toLocaleDateString()}</span>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Due Date:</span>
+                <span className="ml-2">
+                  {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Status:</span>
+                <span className="ml-2 capitalize">{invoice.status.replace('_', ' ')}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <span className="text-sm text-gray-500">Subtotal:</span>
+                <span className="ml-2">${invoice.subtotal.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Tax:</span>
+                <span className="ml-2">${invoice.tax.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-sm text-gray-500 font-medium">Total:</span>
+                <span className="ml-2 font-medium">${invoice.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {selectedItems.length > 0 && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">
+                  {selectedItems.length} item(s) selected
+                </span>
+                <button
+                  onClick={markSelectedAsDelivered}
+                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                >
+                  Mark as Delivered
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold mb-4">Items</h3>
+            {invoice.items.map((item) => (
+              <div
+                key={item.id}
+                className={`border rounded-lg p-4 ${
+                  item.delivered ? 'bg-green-50 border-green-200' : 'bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => toggleItemSelection(item.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{item.description}</h4>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                        <span>Qty: {item.quantity}</span>
+                        <span>Unit: ${item.unitPrice.toFixed(2)}</span>
+                        <span>Total: ${item.totalPrice.toFixed(2)}</span>
+                      </div>
+                      {item.delivered && item.deliveryDate && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Delivered on {new Date(item.deliveryDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      {item.creditNoteApplied && (
+                        <p className="text-sm text-blue-600 mt-1">
+                          Credit note applied: ${item.creditNoteAmount?.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleItemDelivery(item)}
+                    className={`px-3 py-1 rounded text-sm font-medium ${
+                      item.delivered
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {item.delivered ? 'Delivered' : 'Mark Delivered'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {invoice.notes && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2">Notes</h3>
+              <p className="text-gray-600 bg-gray-50 p-3 rounded">{invoice.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InvoiceDetails;
