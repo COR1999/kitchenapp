@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Invoice, InvoiceItem } from '../types/invoice';
+import { Invoice } from '../types/invoice';
 
 interface TraceabilityRecord {
   invoiceId: string;

@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { Invoice } from '../types/invoice';
+import { Invoice, ScanResult } from '../types/invoice';
 import InvoiceCard from './InvoiceCard';
 import InvoiceDetails from './InvoiceDetails';
 import InvoiceScanner from './InvoiceScanner';
 import InvoiceEditor from './InvoiceEditor';
 import CreditNoteManager from './CreditNoteManager';
 import FoodTraceability from './FoodTraceability';
+import DuplicateInvoiceDialog from './DuplicateInvoiceDialog';
+import SpellCheckDialog from './SpellCheckDialog';
 import { useInvoices } from '../hooks/useInvoices';
+import { DuplicateDetectionService, DuplicateCheckResult } from '../services/duplicateDetectionService';
+import { SpellCheckService, SpellCheckResult, SpellCheckSuggestion } from '../services/spellCheckService';
+import { DateUtils } from '../utils/dateUtils';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -27,17 +32,59 @@ const Dashboard: React.FC = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [currentTab, setCurrentTab] = useState<'invoices' | 'creditnotes' | 'traceability'>('invoices');
   const [filter, setFilter] = useState<'all' | 'pending' | 'partially_delivered' | 'fully_delivered'>('all');
+  const [weekFilter, setWeekFilter] = useState<string>('current'); // Default to current week
+  const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null);
+  const [pendingScanResult, setPendingScanResult] = useState<{ scanResult: ScanResult; imageFile: File } | null>(null);
+  const [spellCheckResult, setSpellCheckResult] = useState<SpellCheckResult | null>(null);
+  const [pendingInvoiceForSpellCheck, setPendingInvoiceForSpellCheck] = useState<{ invoice: Partial<Invoice>; imageFile: File } | null>(null);
 
   const stats = getInvoiceStats();
 
   const filteredInvoices = invoices.filter(invoice => {
-    if (filter === 'all') return true;
-    return invoice.status === filter;
+    // Filter by status
+    if (filter !== 'all' && invoice.status !== filter) {
+      return false;
+    }
+    
+    // Filter by week
+    if (weekFilter !== 'all') {
+      const weekRange = DateUtils.getWeekRangeByValue(weekFilter);
+      if (weekRange && !DateUtils.isDateInWeek(invoice.date, weekRange.start)) {
+        return false;
+      }
+    }
+    
+    return true;
   });
 
-  const handleScanComplete = (result: any, imageFile: File) => {
+  const handleScanComplete = (scanResult: ScanResult, imageFile: File) => {
     try {
-      addInvoice(result, imageFile);
+      // Check for duplicates if scan was successful
+      if (scanResult.success && scanResult.invoice) {
+        const duplicateResult = DuplicateDetectionService.checkForDuplicates(scanResult, invoices);
+        
+        if (duplicateResult.isDuplicate) {
+          // Show duplicate confirmation dialog
+          setDuplicateCheckResult(duplicateResult);
+          setPendingScanResult({ scanResult, imageFile });
+          setShowScanner(false);
+          return;
+        }
+        
+        // No duplicates found, check for spelling errors
+        const spellResult = SpellCheckService.checkInvoiceSpelling(scanResult.invoice);
+        
+        if (spellResult.hasErrors) {
+          // Show spell check dialog
+          setSpellCheckResult(spellResult);
+          setPendingInvoiceForSpellCheck({ invoice: scanResult.invoice, imageFile });
+          setShowScanner(false);
+          return;
+        }
+      }
+      
+      // No duplicates or spelling errors found, proceed with adding the invoice
+      addInvoice(scanResult, imageFile);
       setShowScanner(false);
     } catch (error) {
       console.error('Failed to add invoice:', error);
@@ -67,6 +114,85 @@ const Dashboard: React.FC = () => {
   const handleSaveInvoice = (updatedInvoice: Invoice) => {
     updateInvoice(updatedInvoice);
     setEditingInvoice(null);
+  };
+
+  const handleDuplicateProceedAnyway = () => {
+    if (pendingScanResult && pendingScanResult.scanResult.invoice) {
+      // After proceeding with duplicate, check for spelling errors
+      const spellResult = SpellCheckService.checkInvoiceSpelling(pendingScanResult.scanResult.invoice);
+      
+      if (spellResult.hasErrors) {
+        // Show spell check dialog
+        setSpellCheckResult(spellResult);
+        setPendingInvoiceForSpellCheck({ invoice: pendingScanResult.scanResult.invoice, imageFile: pendingScanResult.imageFile });
+        setDuplicateCheckResult(null);
+        setPendingScanResult(null);
+        return;
+      }
+      
+      // No spelling errors, add the invoice
+      addInvoice(pendingScanResult.scanResult, pendingScanResult.imageFile);
+      setDuplicateCheckResult(null);
+      setPendingScanResult(null);
+    }
+  };
+
+  const handleDuplicateSkip = () => {
+    setDuplicateCheckResult(null);
+    setPendingScanResult(null);
+  };
+
+  const handleDuplicateViewExisting = (invoiceId: string) => {
+    const existingInvoice = invoices.find(inv => inv.id === invoiceId);
+    if (existingInvoice) {
+      setSelectedInvoice(existingInvoice);
+    }
+    setDuplicateCheckResult(null);
+    setPendingScanResult(null);
+  };
+
+  const handleDuplicateCancel = () => {
+    setDuplicateCheckResult(null);
+    setPendingScanResult(null);
+    setShowScanner(true); // Go back to scanner
+  };
+
+  const handleSpellCheckApply = (correctedInvoice: Partial<Invoice>, appliedSuggestions: SpellCheckSuggestion[]) => {
+    if (pendingInvoiceForSpellCheck) {
+      // Create a scan result with the corrected invoice
+      const correctedScanResult: ScanResult = {
+        success: true,
+        confidence: 0.8, // Spell-corrected confidence
+        rawText: '', // Not needed for spell-corrected invoices
+        invoice: correctedInvoice
+      };
+      
+      addInvoice(correctedScanResult, pendingInvoiceForSpellCheck.imageFile);
+      setSpellCheckResult(null);
+      setPendingInvoiceForSpellCheck(null);
+    }
+  };
+
+  const handleSpellCheckSkip = () => {
+    if (pendingInvoiceForSpellCheck) {
+      // Add the original invoice without corrections
+      const originalScanResult: ScanResult = {
+        success: true,
+        confidence: 0.6, // Lower confidence for uncorrected handwritten text
+        rawText: '',
+        invoice: pendingInvoiceForSpellCheck.invoice
+      };
+      
+      addInvoice(originalScanResult, pendingInvoiceForSpellCheck.imageFile);
+      setSpellCheckResult(null);
+      setPendingInvoiceForSpellCheck(null);
+    }
+  };
+
+  const handleSpellCheckCancel = () => {
+    setSpellCheckResult(null);
+    setPendingInvoiceForSpellCheck(null);
+    setShowScanner(true); // Go back to scanner
   };
 
   if (loading) {
@@ -190,7 +316,31 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter Tabs */}
+            {/* Week Filter */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Filter by Week</label>
+                <span className="text-xs text-gray-500">
+                  {weekFilter === 'current' && `Showing ${filteredInvoices.length} invoices from this week`}
+                  {weekFilter === 'all' && `Showing ${filteredInvoices.length} invoices from all weeks`}
+                  {weekFilter !== 'current' && weekFilter !== 'all' && `Showing ${filteredInvoices.length} invoices from selected week`}
+                </span>
+              </div>
+              <select
+                value={weekFilter}
+                onChange={(e) => setWeekFilter(e.target.value)}
+                className="w-full sm:w-64 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+              >
+                <option value="all">All Weeks</option>
+                {DateUtils.getWeekRanges(8).map((week) => (
+                  <option key={week.value} value={week.value}>
+                    {week.label} ({DateUtils.formatWeekRange(week.start, week.end)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter Tabs */}
             <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
               {[
                 { key: 'all', label: 'All' },
@@ -272,6 +422,27 @@ const Dashboard: React.FC = () => {
           invoice={editingInvoice}
           onSave={handleSaveInvoice}
           onCancel={() => setEditingInvoice(null)}
+        />
+      )}
+
+      {duplicateCheckResult && pendingScanResult && (
+        <DuplicateInvoiceDialog
+          scanResult={pendingScanResult.scanResult}
+          duplicateResult={duplicateCheckResult}
+          onProceedAnyway={handleDuplicateProceedAnyway}
+          onSkip={handleDuplicateSkip}
+          onViewExisting={handleDuplicateViewExisting}
+          onCancel={handleDuplicateCancel}
+        />
+      )}
+
+      {spellCheckResult && pendingInvoiceForSpellCheck && (
+        <SpellCheckDialog
+          originalInvoice={pendingInvoiceForSpellCheck.invoice}
+          spellCheckResult={spellCheckResult}
+          onApplyCorrections={handleSpellCheckApply}
+          onSkipCorrections={handleSpellCheckSkip}
+          onCancel={handleSpellCheckCancel}
         />
       )}
     </div>
