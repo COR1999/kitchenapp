@@ -21,7 +21,6 @@ const Dashboard: React.FC = () => {
     addInvoice,
     updateInvoice, 
     updateInvoiceItem, 
-    getInvoiceStats,
     addCreditNote,
     applyCreditNoteToInvoice,
     loadDummyData,
@@ -37,8 +36,6 @@ const Dashboard: React.FC = () => {
   const [pendingScanResult, setPendingScanResult] = useState<{ scanResult: ScanResult; imageFile: File } | null>(null);
   const [spellCheckResult, setSpellCheckResult] = useState<SpellCheckResult | null>(null);
   const [pendingInvoiceForSpellCheck, setPendingInvoiceForSpellCheck] = useState<{ invoice: Partial<Invoice>; imageFile: File } | null>(null);
-
-  const stats = getInvoiceStats();
 
   const filteredInvoices = invoices.filter(invoice => {
     // Filter by status
@@ -56,6 +53,15 @@ const Dashboard: React.FC = () => {
     
     return true;
   });
+
+  // Calculate stats based on filtered invoices (not all invoices)
+  const stats = {
+    total: filteredInvoices.length,
+    pending: filteredInvoices.filter(inv => inv.status === 'pending').length,
+    partiallyDelivered: filteredInvoices.filter(inv => inv.status === 'partially_delivered').length,
+    fullyDelivered: filteredInvoices.filter(inv => inv.status === 'fully_delivered').length,
+    totalValue: filteredInvoices.reduce((sum, inv) => sum + inv.total, 0)
+  };
 
   const handleScanComplete = (scanResult: ScanResult, imageFile: File) => {
     try {
@@ -320,11 +326,21 @@ const Dashboard: React.FC = () => {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700">Filter by Week</label>
-                <span className="text-xs text-gray-500">
-                  {weekFilter === 'current' && `Showing ${filteredInvoices.length} invoices from this week`}
-                  {weekFilter === 'all' && `Showing ${filteredInvoices.length} invoices from all weeks`}
-                  {weekFilter !== 'current' && weekFilter !== 'all' && `Showing ${filteredInvoices.length} invoices from selected week`}
-                </span>
+                <div className="text-xs text-gray-500 text-right">
+                  {weekFilter === 'all' ? (
+                    `Showing ${filteredInvoices.length} invoices from all weeks`
+                  ) : (
+                    (() => {
+                      const weekRange = DateUtils.getWeekRangeByValue(weekFilter);
+                      return weekRange ? (
+                        <div>
+                          <div>{`${filteredInvoices.length} invoices from ${weekRange.label}`}</div>
+                          <div className="text-xs text-gray-400">{DateUtils.formatWeekRange(weekRange.start, weekRange.end)}</div>
+                        </div>
+                      ) : `${filteredInvoices.length} invoices`;
+                    })()
+                  )}
+                </div>
               </div>
               <select
                 value={weekFilter}

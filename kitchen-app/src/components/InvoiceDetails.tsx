@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Invoice, InvoiceItem } from '../types/invoice';
+import { Invoice, InvoiceItem, DamageReport } from '../types/invoice';
+import DamageReportDialog from './DamageReportDialog';
 
 interface InvoiceDetailsProps {
   invoice: Invoice;
@@ -15,6 +16,7 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
   onClose 
 }) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [damageReportItem, setDamageReportItem] = useState<InvoiceItem | null>(null);
 
   const toggleItemSelection = (itemId: string) => {
     setSelectedItems(prev => 
@@ -39,6 +41,11 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
       delivered: !item.delivered,
       deliveryDate: !item.delivered ? new Date() : undefined
     });
+  };
+
+  const handleDamageReport = (itemId: string, damageReport: DamageReport) => {
+    onUpdateItem(itemId, { damageReport });
+    setDamageReportItem(null);
   };
 
   return (
@@ -152,18 +159,50 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                           Credit note applied: ${item.creditNoteAmount?.toFixed(2)}
                         </p>
                       )}
+                      {item.damageReport?.reported && (
+                        <div className="text-sm text-red-600 mt-1">
+                          <p className="font-medium flex items-center">
+                            🚨 Damage Reported 
+                            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                              item.damageReport.severity === 'total_loss' ? 'bg-red-100 text-red-800' :
+                              item.damageReport.severity === 'major' ? 'bg-orange-100 text-orange-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {item.damageReport.severity === 'total_loss' ? 'Total Loss' : 
+                               item.damageReport.severity ? item.damageReport.severity.charAt(0).toUpperCase() + item.damageReport.severity.slice(1) : 'Unknown'}
+                            </span>
+                          </p>
+                          {item.damageReport.reason && (
+                            <p className="text-xs mt-1 text-red-500">
+                              {item.damageReport.reason}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => toggleItemDelivery(item)}
-                    className={`px-3 py-1 rounded text-sm font-medium ${
-                      item.delivered
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {item.delivered ? 'Delivered' : 'Mark Delivered'}
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => toggleItemDelivery(item)}
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        item.delivered
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {item.delivered ? 'Delivered' : 'Mark Delivered'}
+                    </button>
+                    <button
+                      onClick={() => setDamageReportItem(item)}
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        item.damageReport?.reported
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      }`}
+                    >
+                      {item.damageReport?.reported ? 'View Damage' : 'Report Damage'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -177,6 +216,15 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Damage Report Dialog */}
+      {damageReportItem && (
+        <DamageReportDialog
+          item={damageReportItem}
+          onSave={handleDamageReport}
+          onCancel={() => setDamageReportItem(null)}
+        />
+      )}
     </div>
   );
 };

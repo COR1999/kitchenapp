@@ -1,3 +1,11 @@
+export interface DamageReport {
+  reported: boolean;
+  reason?: string;
+  photo?: string; // Base64 encoded image or blob URL
+  reportedAt?: Date;
+  severity?: 'minor' | 'major' | 'total_loss';
+}
+
 export interface InvoiceItem {
   id: string;
   description: string;
@@ -10,6 +18,7 @@ export interface InvoiceItem {
   deliveryDate?: Date;
   creditNoteApplied?: boolean;
   creditNoteAmount?: number;
+  damageReport?: DamageReport;
 }
 
 export interface Invoice {

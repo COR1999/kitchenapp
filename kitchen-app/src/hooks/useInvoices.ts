@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Invoice, InvoiceItem, ScanResult, CreditNote } from '../types/invoice';
 import { dummyInvoices, dummyCreditNotes } from '../data/dummyData';
+import { lastMonthInvoices, lastMonthCreditNotes } from '../data/lastMonthData';
+import { augustInvoices, augustCreditNotes } from '../data/augustData';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -26,9 +28,10 @@ export const useInvoices = () => {
         console.error('Failed to load invoices from localStorage:', error);
       }
     } else {
-      // Load dummy data if no saved data exists
-      setInvoices(dummyInvoices);
-      localStorage.setItem('invoices', JSON.stringify(dummyInvoices));
+      // Load combined dummy data including all months if no saved data exists
+      const combinedInvoices = [...augustInvoices, ...lastMonthInvoices, ...dummyInvoices];
+      setInvoices(combinedInvoices);
+      localStorage.setItem('invoices', JSON.stringify(combinedInvoices));
     }
 
     // Load credit notes from localStorage
@@ -44,9 +47,10 @@ export const useInvoices = () => {
         console.error('Failed to load credit notes from localStorage:', error);
       }
     } else {
-      // Load dummy credit notes if no saved data exists
-      setCreditNotes(dummyCreditNotes);
-      localStorage.setItem('creditNotes', JSON.stringify(dummyCreditNotes));
+      // Load combined dummy credit notes including all months if no saved data exists
+      const combinedCreditNotes = [...augustCreditNotes, ...lastMonthCreditNotes, ...dummyCreditNotes];
+      setCreditNotes(combinedCreditNotes);
+      localStorage.setItem('creditNotes', JSON.stringify(combinedCreditNotes));
     }
     
     setLoading(false);
@@ -192,10 +196,14 @@ export const useInvoices = () => {
   };
 
   const loadDummyData = () => {
-    setInvoices(dummyInvoices);
-    setCreditNotes(dummyCreditNotes);
-    localStorage.setItem('invoices', JSON.stringify(dummyInvoices));
-    localStorage.setItem('creditNotes', JSON.stringify(dummyCreditNotes));
+    // Combine all dummy data for comprehensive testing across multiple months
+    const combinedInvoices = [...augustInvoices, ...lastMonthInvoices, ...dummyInvoices];
+    const combinedCreditNotes = [...augustCreditNotes, ...lastMonthCreditNotes, ...dummyCreditNotes];
+    
+    setInvoices(combinedInvoices);
+    setCreditNotes(combinedCreditNotes);
+    localStorage.setItem('invoices', JSON.stringify(combinedInvoices));
+    localStorage.setItem('creditNotes', JSON.stringify(combinedCreditNotes));
   };
 
   const clearAllData = () => {
