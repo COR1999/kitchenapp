@@ -5,6 +5,7 @@ import InvoiceDetails from './InvoiceDetails';
 import InvoiceScanner from './InvoiceScanner';
 import InvoiceEditor from './InvoiceEditor';
 import CreditNoteManager from './CreditNoteManager';
+import FoodTraceability from './FoodTraceability';
 import { useInvoices } from '../hooks/useInvoices';
 
 const Dashboard: React.FC = () => {
@@ -17,13 +18,15 @@ const Dashboard: React.FC = () => {
     updateInvoiceItem, 
     getInvoiceStats,
     addCreditNote,
-    applyCreditNoteToInvoice 
+    applyCreditNoteToInvoice,
+    loadDummyData,
+    clearAllData
   } = useInvoices();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'invoices' | 'creditnotes'>('invoices');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'partially_delivered' | 'fully_delivered' | 'overdue'>('all');
+  const [currentTab, setCurrentTab] = useState<'invoices' | 'creditnotes' | 'traceability'>('invoices');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'partially_delivered' | 'fully_delivered'>('all');
 
   const stats = getInvoiceStats();
 
@@ -85,24 +88,44 @@ const Dashboard: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">Invoice Manager</h1>
             <p className="text-gray-600 mt-1">Scan, track, and manage your invoices</p>
           </div>
-          {currentTab === 'invoices' && (
-            <button
-              onClick={() => setShowScanner(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Scan Invoice</span>
-            </button>
-          )}
+          <div className="flex items-center space-x-3">
+            {/* Demo Data Controls */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={loadDummyData}
+                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors"
+                title="Load demo data for testing"
+              >
+                Load Demo Data
+              </button>
+              <button
+                onClick={clearAllData}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition-colors"
+                title="Clear all data"
+              >
+                Clear All
+              </button>
+            </div>
+            
+            {currentTab === 'invoices' && (
+              <button
+                onClick={() => setShowScanner(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Scan Invoice</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
           <button
             onClick={() => setCurrentTab('invoices')}
-            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+            className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
               currentTab === 'invoices'
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-600 hover:text-gray-900'
@@ -115,7 +138,7 @@ const Dashboard: React.FC = () => {
           </button>
           <button
             onClick={() => setCurrentTab('creditnotes')}
-            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+            className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
               currentTab === 'creditnotes'
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-600 hover:text-gray-900'
@@ -125,6 +148,19 @@ const Dashboard: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
             </svg>
             <span>Credit Notes</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('traceability')}
+            className={`flex-1 py-3 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+              currentTab === 'traceability'
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span>Food Traceability</span>
           </button>
         </div>
 
@@ -160,8 +196,7 @@ const Dashboard: React.FC = () => {
                 { key: 'all', label: 'All' },
                 { key: 'pending', label: 'Pending' },
                 { key: 'partially_delivered', label: 'Partial' },
-                { key: 'fully_delivered', label: 'Complete' },
-                { key: 'overdue', label: 'Overdue' }
+                { key: 'fully_delivered', label: 'Complete' }
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -201,12 +236,16 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </>
-        ) : (
+        ) : currentTab === 'creditnotes' ? (
           <CreditNoteManager
             creditNotes={creditNotes}
             invoices={invoices}
             onApplyCreditNote={applyCreditNoteToInvoice}
             onAddCreditNote={addCreditNote}
+          />
+        ) : (
+          <FoodTraceability
+            invoices={invoices}
           />
         )}
       </div>

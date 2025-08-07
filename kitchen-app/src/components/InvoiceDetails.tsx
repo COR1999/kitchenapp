@@ -82,12 +82,6 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                 <span className="ml-2">{new Date(invoice.date).toLocaleDateString()}</span>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Due Date:</span>
-                <span className="ml-2">
-                  {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
-                </span>
-              </div>
-              <div>
                 <span className="text-sm text-gray-500">Status:</span>
                 <span className="ml-2 capitalize">{invoice.status.replace('_', ' ')}</span>
               </div>
@@ -149,8 +143,8 @@ const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                         <span>Total: ${item.totalPrice.toFixed(2)}</span>
                       </div>
                       {item.delivered && item.deliveryDate && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Delivered on {new Date(item.deliveryDate).toLocaleDateString()}
+                        <p className="text-sm text-green-600 mt-1 font-medium">
+                          ✓ Delivered on {new Date(item.deliveryDate).toLocaleDateString()}
                         </p>
                       )}
                       {item.creditNoteApplied && (

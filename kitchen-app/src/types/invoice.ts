@@ -5,6 +5,7 @@ export interface InvoiceItem {
   unitPrice: number;
   totalPrice: number;
   category?: string;
+  batchCode?: string;
   delivered: boolean;
   deliveryDate?: Date;
   creditNoteApplied?: boolean;
@@ -17,14 +18,13 @@ export interface Invoice {
   supplier: string;
   supplierAddress?: string;
   date: Date;
-  dueDate?: Date;
   subtotal: number;
   tax: number;
   total: number;
   items: InvoiceItem[];
   imageUrl?: string;
   scannedAt: Date;
-  status: 'pending' | 'partially_delivered' | 'fully_delivered' | 'overdue';
+  status: 'pending' | 'partially_delivered' | 'fully_delivered';
   notes?: string;
 }
 

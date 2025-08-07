@@ -11,9 +11,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
   const [formData, setFormData] = useState({
     invoiceNumber: invoice.invoiceNumber,
     supplier: invoice.supplier,
-    supplierAddress: invoice.supplierAddress || '',
     date: invoice.date.toISOString().split('T')[0],
-    dueDate: invoice.dueDate ? invoice.dueDate.toISOString().split('T')[0] : '',
     subtotal: invoice.subtotal.toString(),
     tax: invoice.tax.toString(),
     total: invoice.total.toString(),
@@ -99,6 +97,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
       quantity: 1,
       unitPrice: 0,
       totalPrice: 0,
+      batchCode: '',
       delivered: false
     };
     setItems([...items, newItem]);
@@ -121,9 +120,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
       ...invoice,
       invoiceNumber: formData.invoiceNumber,
       supplier: formData.supplier,
-      supplierAddress: formData.supplierAddress || undefined,
       date: new Date(formData.date),
-      dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
       subtotal: parseFloat(formData.subtotal),
       tax: parseFloat(formData.tax),
       total: parseFloat(formData.total),
@@ -165,7 +162,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Invoice Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Invoice Number *
@@ -198,7 +195,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date *
+                Invoice Date *
               </label>
               <input
                 type="date"
@@ -210,30 +207,6 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
                 <p className="text-red-500 text-xs mt-1">{errors.date}</p>
               )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Supplier Address
-            </label>
-            <textarea
-              value={formData.supplierAddress}
-              onChange={(e) => handleInputChange('supplierAddress', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 h-20"
-              placeholder="Supplier address..."
-            />
           </div>
 
           {/* Invoice Items */}
@@ -253,7 +226,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
               {items.map((item, index) => (
                 <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                    <div className="md:col-span-5">
+                    <div className="md:col-span-4">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Description *
                       </label>
@@ -269,6 +242,19 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
                       {errors[`item_${index}_description`] && (
                         <p className="text-red-500 text-xs mt-1">{errors[`item_${index}_description`]}</p>
                       )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Batch Code
+                      </label>
+                      <input
+                        type="text"
+                        value={item.batchCode || ''}
+                        onChange={(e) => handleItemChange(index, 'batchCode', e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="LOT123"
+                      />
                     </div>
 
                     <div className="md:col-span-2">
@@ -309,7 +295,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
                       )}
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Total
                       </label>
@@ -337,7 +323,7 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
                     </div>
                   </div>
 
-                  <div className="mt-2">
+                  <div className="mt-2 space-y-2">
                     <label className="flex items-center text-sm">
                       <input
                         type="checkbox"
@@ -345,13 +331,15 @@ const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onSave, onCancel
                         onChange={(e) => handleItemChange(index, 'delivered', e.target.checked)}
                         className="mr-2"
                       />
-                      Delivered
-                      {item.delivered && item.deliveryDate && (
-                        <span className="ml-2 text-xs text-gray-500">
-                          on {new Date(item.deliveryDate).toLocaleDateString()}
-                        </span>
-                      )}
+                      <span className={item.delivered ? 'text-green-600 font-medium' : 'text-gray-600'}>
+                        {item.delivered ? 'Delivered' : 'Not Delivered'}
+                      </span>
                     </label>
+                    {item.delivered && item.deliveryDate && (
+                      <div className="text-sm text-green-600 ml-6">
+                        <span className="font-medium">Delivery Date:</span> {new Date(item.deliveryDate).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

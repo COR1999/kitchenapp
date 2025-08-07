@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Invoice, InvoiceItem, ScanResult, CreditNote } from '../types/invoice';
+import { dummyInvoices, dummyCreditNotes } from '../data/dummyData';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -15,7 +16,6 @@ export const useInvoices = () => {
         setInvoices(parsed.map((invoice: any) => ({
           ...invoice,
           date: new Date(invoice.date),
-          dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
           scannedAt: new Date(invoice.scannedAt),
           items: invoice.items.map((item: any) => ({
             ...item,
@@ -25,6 +25,10 @@ export const useInvoices = () => {
       } catch (error) {
         console.error('Failed to load invoices from localStorage:', error);
       }
+    } else {
+      // Load dummy data if no saved data exists
+      setInvoices(dummyInvoices);
+      localStorage.setItem('invoices', JSON.stringify(dummyInvoices));
     }
 
     // Load credit notes from localStorage
@@ -39,6 +43,10 @@ export const useInvoices = () => {
       } catch (error) {
         console.error('Failed to load credit notes from localStorage:', error);
       }
+    } else {
+      // Load dummy credit notes if no saved data exists
+      setCreditNotes(dummyCreditNotes);
+      localStorage.setItem('creditNotes', JSON.stringify(dummyCreditNotes));
     }
     
     setLoading(false);
@@ -67,7 +75,6 @@ export const useInvoices = () => {
       invoiceNumber: scanResult.invoice.invoiceNumber || `INV-${Date.now()}`,
       supplier: scanResult.invoice.supplier || 'Unknown Supplier',
       date: scanResult.invoice.date || new Date(),
-      dueDate: scanResult.invoice.dueDate,
       subtotal: scanResult.invoice.subtotal || 0,
       tax: scanResult.invoice.tax || 0,
       total: scanResult.invoice.total || 0,
@@ -98,11 +105,6 @@ export const useInvoices = () => {
     } else {
       invoice.status = 'partially_delivered';
     }
-
-    // Check if overdue
-    if (invoice.dueDate && new Date() > invoice.dueDate && invoice.status !== 'fully_delivered') {
-      invoice.status = 'overdue';
-    }
   };
 
   const updateInvoiceItem = (invoiceId: string, itemId: string, updates: Partial<InvoiceItem>) => {
@@ -131,7 +133,6 @@ export const useInvoices = () => {
     const pending = invoices.filter(inv => inv.status === 'pending').length;
     const partiallyDelivered = invoices.filter(inv => inv.status === 'partially_delivered').length;
     const fullyDelivered = invoices.filter(inv => inv.status === 'fully_delivered').length;
-    const overdue = invoices.filter(inv => inv.status === 'overdue').length;
     const totalValue = invoices.reduce((sum, inv) => sum + inv.total, 0);
 
     return {
@@ -139,7 +140,6 @@ export const useInvoices = () => {
       pending,
       partiallyDelivered,
       fullyDelivered,
-      overdue,
       totalValue
     };
   };
@@ -191,6 +191,20 @@ export const useInvoices = () => {
     saveInvoices(updatedInvoices);
   };
 
+  const loadDummyData = () => {
+    setInvoices(dummyInvoices);
+    setCreditNotes(dummyCreditNotes);
+    localStorage.setItem('invoices', JSON.stringify(dummyInvoices));
+    localStorage.setItem('creditNotes', JSON.stringify(dummyCreditNotes));
+  };
+
+  const clearAllData = () => {
+    setInvoices([]);
+    setCreditNotes([]);
+    localStorage.removeItem('invoices');
+    localStorage.removeItem('creditNotes');
+  };
+
   return {
     invoices,
     creditNotes,
@@ -201,6 +215,8 @@ export const useInvoices = () => {
     deleteInvoice,
     getInvoiceStats,
     addCreditNote,
-    applyCreditNoteToInvoice
+    applyCreditNoteToInvoice,
+    loadDummyData,
+    clearAllData
   };
 };
