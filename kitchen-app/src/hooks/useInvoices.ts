@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Invoice, InvoiceItem, ScanResult } from '../types/invoice';
+import { Invoice, InvoiceItem, ScanResult, CreditNote } from '../types/invoice';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,12 +26,32 @@ export const useInvoices = () => {
         console.error('Failed to load invoices from localStorage:', error);
       }
     }
+
+    // Load credit notes from localStorage
+    const savedCreditNotes = localStorage.getItem('creditNotes');
+    if (savedCreditNotes) {
+      try {
+        const parsed = JSON.parse(savedCreditNotes);
+        setCreditNotes(parsed.map((creditNote: any) => ({
+          ...creditNote,
+          date: new Date(creditNote.date)
+        })));
+      } catch (error) {
+        console.error('Failed to load credit notes from localStorage:', error);
+      }
+    }
+    
     setLoading(false);
   }, []);
 
   const saveInvoices = (newInvoices: Invoice[]) => {
     localStorage.setItem('invoices', JSON.stringify(newInvoices));
     setInvoices(newInvoices);
+  };
+
+  const saveCreditNotes = (newCreditNotes: CreditNote[]) => {
+    localStorage.setItem('creditNotes', JSON.stringify(newCreditNotes));
+    setCreditNotes(newCreditNotes);
   };
 
   const addInvoice = (scanResult: ScanResult, imageFile: File) => {
@@ -123,12 +144,51 @@ export const useInvoices = () => {
     };
   };
 
+  const addCreditNote = (creditNote: Omit<CreditNote, 'id'>) => {
+    const newCreditNote: CreditNote = {
+      ...creditNote,
+      id: Date.now().toString()
+    };
+    const updatedCreditNotes = [newCreditNote, ...creditNotes];
+    saveCreditNotes(updatedCreditNotes);
+  };
+
+  const applyCreditNoteToInvoice = (creditNoteId: string, invoiceId: string) => {
+    // Update credit note
+    const updatedCreditNotes = creditNotes.map(cn => 
+      cn.id === creditNoteId 
+        ? { ...cn, appliedToInvoice: true, relatedInvoiceId: invoiceId }
+        : cn
+    );
+    saveCreditNotes(updatedCreditNotes);
+
+    // Update invoice items with credit note information
+    const creditNote = creditNotes.find(cn => cn.id === creditNoteId);
+    if (creditNote) {
+      const updatedInvoices = invoices.map(invoice => {
+        if (invoice.id === invoiceId) {
+          const updatedItems = invoice.items.map(item => ({
+            ...item,
+            creditNoteApplied: true,
+            creditNoteAmount: creditNote.amount / invoice.items.length // Simple distribution
+          }));
+          return { ...invoice, items: updatedItems };
+        }
+        return invoice;
+      });
+      saveInvoices(updatedInvoices);
+    }
+  };
+
   return {
     invoices,
+    creditNotes,
     loading,
     addInvoice,
     updateInvoiceItem,
     deleteInvoice,
-    getInvoiceStats
+    getInvoiceStats,
+    addCreditNote,
+    applyCreditNoteToInvoice
   };
 };

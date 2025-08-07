@@ -30,44 +30,12 @@ const InvoiceScanner: React.FC<InvoiceScannerProps> = ({ onScanComplete, onCance
     setIsScanning(true);
     
     try {
-      // Simulate OCR processing - in a real app, you'd integrate with Tesseract.js or a cloud OCR service
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock OCR result - in reality, this would parse the actual image
-      const mockResult: ScanResult = {
-        success: true,
-        confidence: 0.85,
-        rawText: "INVOICE #INV-2024-001\nSupplier: ABC Company\nDate: 2024-01-15\nItem 1: Office Supplies - $25.99\nItem 2: Printer Paper - $15.50\nSubtotal: $41.49\nTax: $3.32\nTotal: $44.81",
-        invoice: {
-          invoiceNumber: "INV-2024-001",
-          supplier: "ABC Company",
-          date: new Date("2024-01-15"),
-          subtotal: 41.49,
-          tax: 3.32,
-          total: 44.81,
-          items: [
-            {
-              id: "1",
-              description: "Office Supplies",
-              quantity: 1,
-              unitPrice: 25.99,
-              totalPrice: 25.99,
-              delivered: false
-            },
-            {
-              id: "2", 
-              description: "Printer Paper",
-              quantity: 1,
-              unitPrice: 15.50,
-              totalPrice: 15.50,
-              delivered: false
-            }
-          ]
-        }
-      };
-
-      onScanComplete(mockResult, selectedFile);
+      // Dynamic import to avoid loading Tesseract.js until needed
+      const { OCRService } = await import('../services/ocrService');
+      const result = await OCRService.scanInvoice(selectedFile);
+      onScanComplete(result, selectedFile);
     } catch (error) {
+      console.error('Scan error:', error);
       const errorResult: ScanResult = {
         success: false,
         confidence: 0,

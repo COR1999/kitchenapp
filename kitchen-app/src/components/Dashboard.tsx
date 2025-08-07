@@ -3,12 +3,23 @@ import { Invoice } from '../types/invoice';
 import InvoiceCard from './InvoiceCard';
 import InvoiceDetails from './InvoiceDetails';
 import InvoiceScanner from './InvoiceScanner';
+import CreditNoteManager from './CreditNoteManager';
 import { useInvoices } from '../hooks/useInvoices';
 
 const Dashboard: React.FC = () => {
-  const { invoices, loading, addInvoice, updateInvoiceItem, getInvoiceStats } = useInvoices();
+  const { 
+    invoices, 
+    creditNotes, 
+    loading, 
+    addInvoice, 
+    updateInvoiceItem, 
+    getInvoiceStats,
+    addCreditNote,
+    applyCreditNoteToInvoice 
+  } = useInvoices();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'invoices' | 'creditnotes'>('invoices');
   const [filter, setFilter] = useState<'all' | 'pending' | 'partially_delivered' | 'fully_delivered' | 'overdue'>('all');
 
   const stats = getInvoiceStats();
@@ -61,85 +72,128 @@ const Dashboard: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">Invoice Manager</h1>
             <p className="text-gray-600 mt-1">Scan, track, and manage your invoices</p>
           </div>
+          {currentTab === 'invoices' && (
+            <button
+              onClick={() => setShowScanner(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Scan Invoice</span>
+            </button>
+          )}
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
           <button
-            onClick={() => setShowScanner(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+            onClick={() => setCurrentTab('invoices')}
+            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+              currentTab === 'invoices'
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span>Scan Invoice</span>
+            <span>Invoices</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('creditnotes')}
+            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+              currentTab === 'creditnotes'
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+            <span>Credit Notes</span>
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">Total Invoices</div>
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">Pending</div>
-            <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">Partially Delivered</div>
-            <div className="text-2xl font-bold text-yellow-600">{stats.partiallyDelivered}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">Fully Delivered</div>
-            <div className="text-2xl font-bold text-green-600">{stats.fullyDelivered}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">Total Value</div>
-            <div className="text-2xl font-bold text-gray-900">${stats.totalValue.toFixed(2)}</div>
-          </div>
-        </div>
+        {currentTab === 'invoices' ? (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-sm font-medium text-gray-500">Total Invoices</div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-sm font-medium text-gray-500">Pending</div>
+                <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-sm font-medium text-gray-500">Partially Delivered</div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.partiallyDelivered}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-sm font-medium text-gray-500">Fully Delivered</div>
+                <div className="text-2xl font-bold text-green-600">{stats.fullyDelivered}</div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-sm font-medium text-gray-500">Total Value</div>
+                <div className="text-2xl font-bold text-gray-900">${stats.totalValue.toFixed(2)}</div>
+              </div>
+            </div>
 
-        {/* Filter Tabs */}
-        <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'pending', label: 'Pending' },
-            { key: 'partially_delivered', label: 'Partial' },
-            { key: 'fully_delivered', label: 'Complete' },
-            { key: 'overdue', label: 'Overdue' }
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                filter === tab.key
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+            {/* Filter Tabs */}
+            <div className="flex space-x-1 mb-6 bg-white rounded-lg p-1 shadow">
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'pending', label: 'Pending' },
+                { key: 'partially_delivered', label: 'Partial' },
+                { key: 'fully_delivered', label: 'Complete' },
+                { key: 'overdue', label: 'Overdue' }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key as any)}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    filter === tab.key
+                      ? 'bg-blue-500 text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-        {/* Invoices Grid */}
-        {filteredInvoices.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {filter === 'all' ? 'Get started by scanning your first invoice.' : `No ${filter.replace('_', ' ')} invoices found.`}
-            </p>
-          </div>
+            {/* Invoices Grid */}
+            {filteredInvoices.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {filter === 'all' ? 'Get started by scanning your first invoice.' : `No ${filter.replace('_', ' ')} invoices found.`}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredInvoices.map((invoice) => (
+                  <InvoiceCard
+                    key={invoice.id}
+                    invoice={invoice}
+                    onViewDetails={setSelectedInvoice}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredInvoices.map((invoice) => (
-              <InvoiceCard
-                key={invoice.id}
-                invoice={invoice}
-                onViewDetails={setSelectedInvoice}
-              />
-            ))}
-          </div>
+          <CreditNoteManager
+            creditNotes={creditNotes}
+            invoices={invoices}
+            onApplyCreditNote={applyCreditNoteToInvoice}
+            onAddCreditNote={addCreditNote}
+          />
         )}
       </div>
 
