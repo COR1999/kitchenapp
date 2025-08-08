@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Invoice } from '../types/invoice';
+import { DateUtils } from '../utils/dateUtils';
 
 interface TraceabilityRecord {
   invoiceId: string;
@@ -16,13 +17,17 @@ interface TraceabilityRecord {
 
 interface FoodTraceabilityProps {
   invoices: Invoice[];
+  onUpdateInvoiceItem?: (invoiceId: string, itemId: string, updates: { batchCode: string }) => void;
 }
 
-const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
+const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices, onUpdateInvoiceItem }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState<'all' | 'with_batch' | 'without_batch'>('all');
+  const [weekFilter, setWeekFilter] = useState<string>('current'); // Default to current week
   const [sortBy, setSortBy] = useState<'date' | 'batch_code' | 'item_name' | 'supplier'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [editingBatch, setEditingBatch] = useState<{ invoiceId: string; itemId: string } | null>(null);
+  const [batchCodeInput, setBatchCodeInput] = useState('');
 
   // Convert invoices to traceability records
   const traceabilityRecords = useMemo(() => {
@@ -51,6 +56,16 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
   // Filter and sort records
   const filteredAndSortedRecords = useMemo(() => {
     let filtered = traceabilityRecords;
+
+    // Apply week filter
+    if (weekFilter !== 'all') {
+      const weekRange = DateUtils.getWeekRangeByValue(weekFilter);
+      if (weekRange) {
+        filtered = filtered.filter(record => 
+          DateUtils.isDateInWeek(record.invoiceDate, weekRange.start)
+        );
+      }
+    }
 
     // Apply search filter
     if (searchTerm) {
@@ -98,7 +113,7 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
     });
 
     return filtered;
-  }, [traceabilityRecords, searchTerm, filterBy, sortBy, sortOrder]);
+  }, [traceabilityRecords, searchTerm, filterBy, weekFilter, sortBy, sortOrder]);
 
   const handleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
@@ -107,6 +122,26 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
       setSortBy(field);
       setSortOrder('desc');
     }
+  };
+
+  const handleAddBatchCode = (invoiceId: string, itemId: string, currentBatchCode?: string) => {
+    setEditingBatch({ invoiceId, itemId });
+    setBatchCodeInput(currentBatchCode || '');
+  };
+
+  const handleSaveBatchCode = () => {
+    if (editingBatch && onUpdateInvoiceItem && batchCodeInput.trim()) {
+      onUpdateInvoiceItem(editingBatch.invoiceId, editingBatch.itemId, { 
+        batchCode: batchCodeInput.trim() 
+      });
+      setEditingBatch(null);
+      setBatchCodeInput('');
+    }
+  };
+
+  const handleCancelBatchEdit = () => {
+    setEditingBatch(null);
+    setBatchCodeInput('');
   };
 
   const exportToCSV = () => {
@@ -193,7 +228,7 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
 
       {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Search
@@ -210,6 +245,24 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Time Period
+            </label>
+            <select
+              value={weekFilter}
+              onChange={(e) => setWeekFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Time</option>
+              {DateUtils.getWeekRanges(8).map((week) => (
+                <option key={week.value} value={week.value}>
+                  {week.label} ({DateUtils.formatWeekRange(week.start, week.end)})
+                </option>
+              ))}
+            </select>
           </div>
           
           <div>
@@ -297,6 +350,9 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -315,7 +371,37 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
                       {record.itemName}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {record.batchCode ? (
+                      {editingBatch?.invoiceId === record.invoiceId && editingBatch?.itemId === record.itemId ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={batchCodeInput}
+                            onChange={(e) => setBatchCodeInput(e.target.value)}
+                            placeholder="Enter batch code"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 w-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveBatchCode}
+                            disabled={!batchCodeInput.trim()}
+                            className="text-green-600 hover:text-green-800 disabled:text-gray-400"
+                            title="Save batch code"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={handleCancelBatchEdit}
+                            className="text-gray-400 hover:text-gray-600"
+                            title="Cancel"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : record.batchCode ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {record.batchCode}
                         </span>
@@ -344,6 +430,21 @@ const FoodTraceability: React.FC<FoodTraceabilityProps> = ({ invoices }) => {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Pending
                         </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {onUpdateInvoiceItem && (editingBatch?.invoiceId !== record.invoiceId || editingBatch?.itemId !== record.itemId) && (
+                        <button
+                          onClick={() => handleAddBatchCode(record.invoiceId, record.itemId, record.batchCode)}
+                          className={`text-xs font-medium px-2 py-1 rounded transition-colors ${
+                            record.batchCode 
+                              ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-50' 
+                              : 'text-orange-600 hover:text-orange-800 hover:bg-orange-50'
+                          }`}
+                          title={record.batchCode ? 'Edit batch code' : 'Add batch code'}
+                        >
+                          {record.batchCode ? 'Edit' : 'Add Batch'}
+                        </button>
                       )}
                     </td>
                   </tr>

@@ -473,6 +473,7 @@ const Dashboard: React.FC = () => {
         ) : (
           <FoodTraceability
             invoices={invoices}
+            onUpdateInvoiceItem={updateInvoiceItem}
           />
         )}
       </div>

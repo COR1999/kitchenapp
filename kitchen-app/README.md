@@ -47,9 +47,8 @@ Currently in active development, this system aims to solve the complex invoice m
 
 ## 🎯 Target Users
 
-- **Restaurant Managers**: Streamline supplier invoice processing
-- **Catering Companies**: Track deliveries across multiple events
-- **Food Service Operations**: Manage high-volume invoice workflows
+- **Chefs**: Streamline supplier invoice processing and track ingredient deliveries
+- **Restaurant Managers**: Manage high-volume invoice workflows and delivery tracking
 - **Kitchen Staff**: Quick mobile scanning and delivery updates
 
 ## 🚧 Development Status
