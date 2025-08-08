@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CreditNote, Invoice } from '../types/invoice';
+import { Button, Modal, Badge, Input, TextArea } from './ui';
 
 interface CreditNoteManagerProps {
   creditNotes: CreditNote[];
@@ -87,12 +88,9 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-900">Credit Notes</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-        >
+        <Button variant="success" onClick={() => setShowAddForm(true)}>
           Add Credit Note
-        </button>
+        </Button>
       </div>
 
       {/* Unapplied Credit Notes */}
@@ -159,13 +157,11 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
                     {new Date(creditNote.date).toLocaleDateString()}
                   </div>
                 </div>
-                <div className={`px-2 py-1 rounded text-xs font-medium ${
-                  (creditNote.appliedToInvoiceId || creditNote.appliedToInvoice)
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}>
+                <Badge 
+                  variant={(creditNote.appliedToInvoiceId || creditNote.appliedToInvoice) ? 'success' : 'warning'}
+                >
                   {(creditNote.appliedToInvoiceId || creditNote.appliedToInvoice) ? 'Applied' : 'Pending'}
-                </div>
+                </Badge>
               </div>
               {(creditNote.appliedToInvoiceId || creditNote.relatedInvoiceId) && (
                 <div className="text-sm text-blue-600 mt-1">
@@ -178,150 +174,115 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
       </div>
 
       {/* Add Credit Note Form */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="sticky top-0 bg-white border-b p-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">Add Credit Note</h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Credit Note Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCreditNote.creditNoteNumber}
-                    onChange={(e) => setNewCreditNote(prev => ({ ...prev, creditNoteNumber: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Supplier *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCreditNote.supplier}
-                    onChange={(e) => setNewCreditNote(prev => ({ ...prev, supplier: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={newCreditNote.date}
-                    onChange={(e) => setNewCreditNote(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total Amount *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={newCreditNote.amount}
-                    onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: e.target.value }))}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reason
-                </label>
-                <textarea
-                  value={newCreditNote.reason}
-                  onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2 h-20"
-                  placeholder="Reason for credit note..."
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Items
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="text-blue-500 hover:text-blue-600 text-sm"
-                  >
-                    + Add Item
-                  </button>
-                </div>
-                {newCreditNote.items.map((item, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="Description"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      className="flex-1 border rounded-md px-3 py-2"
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Amount"
-                      value={item.amount}
-                      onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
-                      className="w-32 border rounded-md px-3 py-2"
-                    />
-                    {newCreditNote.items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-red-500 hover:text-red-600 px-2"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                >
-                  Add Credit Note
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add Credit Note"
+        size="2xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Credit Note Number"
+              type="text"
+              required
+              value={newCreditNote.creditNoteNumber}
+              onChange={(e) => setNewCreditNote(prev => ({ ...prev, creditNoteNumber: e.target.value }))}
+            />
+            <Input
+              label="Supplier"
+              type="text"
+              required
+              value={newCreditNote.supplier}
+              onChange={(e) => setNewCreditNote(prev => ({ ...prev, supplier: e.target.value }))}
+            />
+            <Input
+              label="Date"
+              type="date"
+              required
+              value={newCreditNote.date}
+              onChange={(e) => setNewCreditNote(prev => ({ ...prev, date: e.target.value }))}
+            />
+            <Input
+              label="Total Amount"
+              type="number"
+              step="0.01"
+              required
+              value={newCreditNote.amount}
+              onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: e.target.value }))}
+            />
           </div>
-        </div>
-      )}
+
+          <TextArea
+            label="Reason"
+            value={newCreditNote.reason}
+            onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))}
+            placeholder="Reason for credit note..."
+            className="h-20"
+          />
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Items
+              </label>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleAddItem}
+              >
+                + Add Item
+              </Button>
+            </div>
+            {newCreditNote.items.map((item, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <Input
+                  type="text"
+                  placeholder="Description"
+                  value={item.description}
+                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount"
+                  value={item.amount}
+                  onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
+                  className="w-32"
+                />
+                {newCreditNote.items.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleRemoveItem(index)}
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowAddForm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="success"
+            >
+              Add Credit Note
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

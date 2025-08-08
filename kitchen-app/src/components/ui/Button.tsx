@@ -1,4 +1,5 @@
 import React from 'react';
+import { currentTheme, buildBgClass, buildHoverBgClass } from '../../theme';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost';
@@ -15,13 +16,23 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   const baseClasses = 'font-medium rounded-md transition-colors focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
-  const variantClasses = {
-    primary: 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500',
-    secondary: 'bg-gray-500 text-white hover:bg-gray-600 focus:ring-gray-500',
-    success: 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500',
-    danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
-    warning: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
-    ghost: 'text-gray-700 hover:bg-gray-50 focus:ring-gray-500'
+  const getVariantClasses = (variant: string) => {
+    switch (variant) {
+      case 'primary':
+        return `bg-${currentTheme.colors.primary} text-white hover:bg-${currentTheme.colors.primaryHover} focus:ring-${currentTheme.colors.primary}`;
+      case 'secondary':
+        return `bg-${currentTheme.colors.secondary} text-white hover:bg-${currentTheme.colors.secondaryHover} focus:ring-${currentTheme.colors.secondary}`;
+      case 'success':
+        return `bg-${currentTheme.colors.success} text-white hover:bg-${currentTheme.colors.successHover} focus:ring-${currentTheme.colors.success}`;
+      case 'danger':
+        return `bg-${currentTheme.colors.danger} text-white hover:bg-${currentTheme.colors.dangerHover} focus:ring-${currentTheme.colors.danger}`;
+      case 'warning':
+        return `bg-${currentTheme.colors.warning} text-white hover:bg-${currentTheme.colors.warningHover} focus:ring-${currentTheme.colors.warning}`;
+      case 'ghost':
+        return `text-${currentTheme.colors.textSecondary} hover:bg-${currentTheme.colors.pageBackground} focus:ring-${currentTheme.colors.secondary}`;
+      default:
+        return `bg-${currentTheme.colors.primary} text-white hover:bg-${currentTheme.colors.primaryHover} focus:ring-${currentTheme.colors.primary}`;
+    }
   };
   
   const sizeClasses = {
@@ -30,7 +41,7 @@ const Button: React.FC<ButtonProps> = ({
     lg: 'px-6 py-3 text-base'
   };
   
-  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+  const classes = `${baseClasses} ${getVariantClasses(variant)} ${sizeClasses[size]} ${className}`;
   
   return (
     <button className={classes} {...props}>

@@ -12,6 +12,8 @@ import { useInvoices } from '../hooks/useInvoicesDB';
 import { DuplicateDetectionService, DuplicateCheckResult } from '../services/duplicateDetectionService';
 import { SpellCheckService, SpellCheckResult, SpellCheckSuggestion } from '../services/spellCheckService';
 import { DateUtils } from '../utils/dateUtils';
+import { Button } from './ui';
+import { currentTheme } from '../theme';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -213,7 +215,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-${currentTheme.colors.pageBackground}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -223,32 +225,36 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center space-x-3">
             {/* Demo Data Controls */}
             <div className="flex items-center space-x-2">
-              <button
+              <Button
                 onClick={loadDummyData}
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors"
+                variant="success"
+                size="sm"
                 title="Load demo data for testing"
               >
                 Load Demo Data
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={clearAllData}
-                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition-colors"
+                variant="danger"
+                size="sm"
                 title="Clear all data"
               >
                 Clear All
-              </button>
+              </Button>
             </div>
             
             {currentTab === 'invoices' && (
-              <button
+              <Button
                 onClick={() => setShowScanner(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                variant="primary"
+                size="lg"
+                className="flex items-center space-x-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span>Scan Invoice</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>

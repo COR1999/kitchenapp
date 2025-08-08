@@ -1,4 +1,5 @@
 import React from 'react';
+import { currentTheme } from '../../theme';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -15,12 +16,21 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   const baseClasses = 'inline-flex items-center font-medium rounded-full';
   
-  const variantClasses = {
-    primary: 'bg-blue-100 text-blue-800',
-    success: 'bg-green-100 text-green-800', 
-    warning: 'bg-yellow-100 text-yellow-800',
-    danger: 'bg-red-100 text-red-800',
-    info: 'bg-gray-100 text-gray-800'
+  const getVariantClasses = (variant: string) => {
+    switch (variant) {
+      case 'primary':
+        return `bg-${currentTheme.colors.primary.replace('-500', '-100')} text-${currentTheme.colors.primary.replace('-500', '-800')}`;
+      case 'success':
+        return `bg-${currentTheme.colors.success.replace('-500', '-100')} text-${currentTheme.colors.success.replace('-500', '-800')}`;
+      case 'warning':
+        return `bg-${currentTheme.colors.warning.replace('-500', '-100')} text-${currentTheme.colors.warning.replace('-500', '-800')}`;
+      case 'danger':
+        return `bg-${currentTheme.colors.danger.replace('-500', '-100')} text-${currentTheme.colors.danger.replace('-500', '-800')}`;
+      case 'info':
+        return `bg-${currentTheme.colors.secondary.replace('-500', '-100')} text-${currentTheme.colors.secondary.replace('-500', '-800')}`;
+      default:
+        return `bg-${currentTheme.colors.primary.replace('-500', '-100')} text-${currentTheme.colors.primary.replace('-500', '-800')}`;
+    }
   };
   
   const sizeClasses = {
@@ -28,7 +38,7 @@ const Badge: React.FC<BadgeProps> = ({
     md: 'px-3 py-1 text-sm'
   };
   
-  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+  const classes = `${baseClasses} ${getVariantClasses(variant)} ${sizeClasses[size]} ${className}`;
   
   return <span className={classes}>{children}</span>;
 };
