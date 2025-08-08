@@ -1,7 +1,8 @@
 export interface DamageReport {
   reported: boolean;
   reason?: string;
-  photo?: string; // Base64 encoded image or blob URL
+  photos?: string[]; // Array of Base64 encoded images or blob URLs
+  photo?: string; // Legacy field for backward compatibility
   reportedAt?: Date;
   severity?: 'minor' | 'major' | 'total_loss';
 }
@@ -32,9 +33,17 @@ export interface Invoice {
   total: number;
   items: InvoiceItem[];
   imageUrl?: string;
-  scannedAt: Date;
+  scannedAt?: Date;
   status: 'pending' | 'partially_delivered' | 'fully_delivered';
   notes?: string;
+  confidence?: number; // OCR confidence level
+  rawText?: string; // Raw OCR text
+}
+
+export interface CreditNoteItem {
+  id?: string; // Optional for backward compatibility
+  description: string;
+  amount: number;
 }
 
 export interface CreditNote {
@@ -42,14 +51,14 @@ export interface CreditNote {
   creditNoteNumber: string;
   supplier: string;
   date: Date;
-  amount: number;
-  reason: string;
+  totalAmount?: number; // Optional for backward compatibility
+  appliedToInvoiceId?: string;
+  items: CreditNoteItem[];
+  // Legacy fields for backward compatibility
+  amount?: number;
+  reason?: string;
   relatedInvoiceId?: string;
-  items: {
-    description: string;
-    amount: number;
-  }[];
-  appliedToInvoice: boolean;
+  appliedToInvoice?: boolean;
 }
 
 export interface ScanResult {

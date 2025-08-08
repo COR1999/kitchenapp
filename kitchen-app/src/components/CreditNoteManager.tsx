@@ -55,7 +55,7 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
       creditNoteNumber: newCreditNote.creditNoteNumber,
       supplier: newCreditNote.supplier,
       date: new Date(newCreditNote.date),
-      amount: parseFloat(newCreditNote.amount),
+      totalAmount: parseFloat(newCreditNote.amount),
       reason: newCreditNote.reason,
       relatedInvoiceId: newCreditNote.relatedInvoiceId || undefined,
       items: newCreditNote.items
@@ -64,7 +64,7 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
           description: item.description,
           amount: parseFloat(item.amount)
         })),
-      appliedToInvoice: false
+      appliedToInvoiceId: undefined
     };
 
     onAddCreditNote(creditNote);
@@ -80,7 +80,7 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
     });
   };
 
-  const unappliedCreditNotes = creditNotes.filter(cn => !cn.appliedToInvoice);
+  const unappliedCreditNotes = creditNotes.filter(cn => !cn.appliedToInvoiceId && !cn.appliedToInvoice);
   const matchableInvoices = invoices.filter(inv => inv.status !== 'fully_delivered');
 
   return (
@@ -106,7 +106,7 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
                   <div>
                     <div className="font-medium">{creditNote.creditNoteNumber}</div>
                     <div className="text-sm text-gray-600">
-                      {creditNote.supplier} • ${creditNote.amount.toFixed(2)}
+                      {creditNote.supplier} • ${(creditNote.totalAmount || creditNote.amount || 0).toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-500">
                       {new Date(creditNote.date).toLocaleDateString()}
@@ -153,23 +153,23 @@ const CreditNoteManager: React.FC<CreditNoteManagerProps> = ({
                 <div>
                   <div className="font-medium">{creditNote.creditNoteNumber}</div>
                   <div className="text-sm text-gray-600">
-                    {creditNote.supplier} • ${creditNote.amount.toFixed(2)}
+                    {creditNote.supplier} • ${(creditNote.totalAmount || creditNote.amount || 0).toFixed(2)}
                   </div>
                   <div className="text-sm text-gray-500">
                     {new Date(creditNote.date).toLocaleDateString()}
                   </div>
                 </div>
                 <div className={`px-2 py-1 rounded text-xs font-medium ${
-                  creditNote.appliedToInvoice 
+                  (creditNote.appliedToInvoiceId || creditNote.appliedToInvoice)
                     ? 'bg-green-100 text-green-700' 
                     : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {creditNote.appliedToInvoice ? 'Applied' : 'Pending'}
+                  {(creditNote.appliedToInvoiceId || creditNote.appliedToInvoice) ? 'Applied' : 'Pending'}
                 </div>
               </div>
-              {creditNote.relatedInvoiceId && (
+              {(creditNote.appliedToInvoiceId || creditNote.relatedInvoiceId) && (
                 <div className="text-sm text-blue-600 mt-1">
-                  Applied to: {invoices.find(inv => inv.id === creditNote.relatedInvoiceId)?.invoiceNumber}
+                  Applied to: {invoices.find(inv => inv.id === (creditNote.appliedToInvoiceId || creditNote.relatedInvoiceId))?.invoiceNumber}
                 </div>
               )}
             </div>

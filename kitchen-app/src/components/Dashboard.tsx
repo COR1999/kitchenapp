@@ -8,7 +8,7 @@ import CreditNoteManager from './CreditNoteManager';
 import FoodTraceability from './FoodTraceability';
 import DuplicateInvoiceDialog from './DuplicateInvoiceDialog';
 import SpellCheckDialog from './SpellCheckDialog';
-import { useInvoices } from '../hooks/useInvoices';
+import { useInvoices } from '../hooks/useInvoicesDB';
 import { DuplicateDetectionService, DuplicateCheckResult } from '../services/duplicateDetectionService';
 import { SpellCheckService, SpellCheckResult, SpellCheckSuggestion } from '../services/spellCheckService';
 import { DateUtils } from '../utils/dateUtils';

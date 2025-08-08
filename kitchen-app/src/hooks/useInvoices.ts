@@ -161,7 +161,7 @@ export const useInvoices = () => {
     // Update credit note
     const updatedCreditNotes = creditNotes.map(cn => 
       cn.id === creditNoteId 
-        ? { ...cn, appliedToInvoice: true, relatedInvoiceId: invoiceId }
+        ? { ...cn, appliedToInvoice: true, appliedToInvoiceId: invoiceId, relatedInvoiceId: invoiceId }
         : cn
     );
     saveCreditNotes(updatedCreditNotes);
@@ -174,7 +174,7 @@ export const useInvoices = () => {
           const updatedItems = invoice.items.map(item => ({
             ...item,
             creditNoteApplied: true,
-            creditNoteAmount: creditNote.amount / invoice.items.length // Simple distribution
+            creditNoteAmount: (creditNote.totalAmount || creditNote.amount || 0) / invoice.items.length // Simple distribution
           }));
           return { ...invoice, items: updatedItems };
         }
