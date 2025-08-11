@@ -43,9 +43,12 @@ const InvoiceScanner: React.FC<InvoiceScannerProps> = ({ onScanComplete, onCance
         rawText: "",
         error: "Failed to process image"
       };
+      console.log(errorResult.error)
+      console.log(errorResult)
       onScanComplete(errorResult, selectedFile);
     } finally {
       setIsScanning(false);
+      
     }
   };
 

@@ -174,9 +174,17 @@ export class OCRService {
         };
       }
 
-      // If we don't have a supplier but found other info, set a default
+      // Ensure required fields have defaults
       if (!parsedInvoice.supplier) {
         parsedInvoice.supplier = 'Unknown Supplier';
+      }
+      
+      if (!parsedInvoice.invoiceNumber) {
+        parsedInvoice.invoiceNumber = `INV-${Date.now()}`;
+      }
+      
+      if (!parsedInvoice.date) {
+        parsedInvoice.date = new Date();
       }
 
       return {
