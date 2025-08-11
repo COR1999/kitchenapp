@@ -9,7 +9,12 @@
       "Bash(npm run build:*)",
       "Bash(set PORT=3001)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx:*)",
+      "Bash(start /B cmd /c \"set PORT=3001 && npm start\")",
+      "Bash(taskkill:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
