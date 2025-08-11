@@ -1,4 +1,4 @@
-import { Invoice, InvoiceItem, CreditNote, ScanResult, DamageReport } from '../types/invoice';
+import { Invoice, InvoiceItem, CreditNote, ScanResult, DamageReport, DuplicateCheckResult, DuplicateInvoice } from '../types/invoice';
 
 // Browser-compatible database using localStorage with better structure
 class BrowserDatabase {
@@ -90,6 +90,108 @@ class BrowserDatabase {
   public getInvoiceById(id: string): Invoice | null {
     const invoices = this.getAllInvoices();
     return invoices.find(inv => inv.id === id) || null;
+  }
+
+  private calculateTextSimilarity(text1: string, text2: string): number {
+    // Simple Jaccard similarity for text comparison
+    const words1 = text1.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    const words2 = text2.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+    
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    
+    // Calculate intersection
+    let intersectionCount = 0;
+    set1.forEach(word => {
+      if (set2.has(word)) {
+        intersectionCount++;
+      }
+    });
+    
+    // Calculate union size
+    const unionSet = new Set(words1.concat(words2));
+    const unionCount = unionSet.size;
+    
+    return unionCount > 0 ? intersectionCount / unionCount : 0;
+  }
+
+  public checkForDuplicates(scanResult: ScanResult): DuplicateCheckResult {
+    const invoices = this.getAllInvoices();
+    const duplicates: DuplicateInvoice[] = [];
+
+    if (!scanResult.invoice) {
+      return { isDuplicate: false, duplicates: [] };
+    }
+
+    const { invoiceNumber, supplier, date, total } = scanResult.invoice;
+
+    for (const existingInvoice of invoices) {
+      let matchScore = 0;
+      let matchType: 'exact' | 'probable' = 'probable';
+
+      // For OCR scanned invoices, we need to be more flexible since:
+      // 1. Invoice numbers are auto-generated with timestamps
+      // 2. Total amounts might be missing or slightly different due to OCR errors
+      // 3. We should focus on supplier + recent date combination
+      
+      // Supplier match (50 points - increased weight)
+      if (supplier && existingInvoice.supplier.toLowerCase() === supplier.toLowerCase()) {
+        matchScore += 50;
+      }
+      
+      // Date match within 1 hour (40 points - high weight for recent scans)
+      if (date && existingInvoice.date) {
+        const dateDiff = Math.abs(new Date(date).getTime() - new Date(existingInvoice.date).getTime());
+        const hoursDiff = dateDiff / (1000 * 60 * 60);
+        
+        if (hoursDiff <= 1) {
+          // Very recent scans - likely duplicates
+          const datePoints = Math.max(0, 40 - hoursDiff * 10);
+          matchScore += datePoints;
+        } else if (hoursDiff <= 24) {
+          // Same day scans - possible duplicates
+          const datePoints = Math.max(0, 20 - (hoursDiff - 1) * 0.5);
+          matchScore += datePoints;
+        }
+      }
+      
+      // Total amount match within 10% (20 points - if available)
+      if (total && existingInvoice.total && total > 0) {
+        const totalDiff = Math.abs(total - existingInvoice.total);
+        const totalPercent = (totalDiff / existingInvoice.total) * 100;
+        if (totalPercent <= 10) {
+          const totalPoints = Math.max(0, 20 - totalPercent);
+          matchScore += totalPoints;
+        }
+      }
+      
+      // Raw text similarity bonus (10 points)
+      if (scanResult.rawText && existingInvoice.rawText) {
+        const similarity = this.calculateTextSimilarity(scanResult.rawText, existingInvoice.rawText);
+        if (similarity > 0.7) {
+          const textPoints = (similarity - 0.7) * 33.33; // Up to 10 points
+          matchScore += textPoints;
+        }
+      }
+
+      // Consider as duplicate if score >= 60 (lowered threshold for OCR flexibility)
+      if (matchScore >= 60) {
+        duplicates.push({
+          id: existingInvoice.id,
+          invoiceNumber: existingInvoice.invoiceNumber,
+          supplier: existingInvoice.supplier,
+          date: existingInvoice.date,
+          total: existingInvoice.total,
+          matchType,
+          matchScore: Math.round(matchScore)
+        });
+      }
+    }
+
+    return {
+      isDuplicate: duplicates.length > 0,
+      duplicates: duplicates.sort((a, b) => b.matchScore - a.matchScore)
+    };
   }
 
   public createInvoice(scanResult: ScanResult): Invoice {

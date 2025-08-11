@@ -68,3 +68,19 @@ export interface ScanResult {
   rawText: string;
   error?: string;
 }
+
+export interface DuplicateInvoice {
+  id: string;
+  invoiceNumber: string;
+  supplier: string;
+  date: Date;
+  total: number;
+  matchType: 'exact' | 'probable';
+  matchScore: number;
+}
+
+export interface DuplicateCheckResult {
+  isDuplicate: boolean;
+  duplicates: DuplicateInvoice[];
+  newInvoice?: Invoice;
+}

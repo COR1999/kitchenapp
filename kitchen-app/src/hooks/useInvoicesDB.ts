@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Invoice, InvoiceItem, ScanResult, CreditNote } from '../types/invoice';
+import { Invoice, InvoiceItem, ScanResult, CreditNote, DuplicateCheckResult } from '../types/invoice';
 import BrowserDatabase from '../database/browserDB';
 import { dummyInvoices, dummyCreditNotes } from '../data/dummyData';
 import { lastMonthInvoices, lastMonthCreditNotes } from '../data/lastMonthData';
@@ -140,11 +140,16 @@ export const useInvoices = () => {
     loadDataFromDatabase();
   };
 
-  const addInvoice = (scanResult: ScanResult, imageFile: File) => {
+  const checkDuplicates = (scanResult: ScanResult): DuplicateCheckResult => {
+    return db.checkForDuplicates(scanResult);
+  };
+
+  const addInvoice = (scanResult: ScanResult, imageFile: File, forceSave: boolean = false) => {
     try {
       const newInvoice = db.createInvoice(scanResult);
       setInvoices(prev => [newInvoice, ...prev]);
       console.log('Invoice added to database:', newInvoice.invoiceNumber);
+      return newInvoice;
     } catch (error) {
       console.error('Failed to add invoice:', error);
       throw error;
@@ -324,6 +329,7 @@ export const useInvoices = () => {
     creditNotes,
     loading,
     addInvoice,
+    checkDuplicates,
     updateInvoice,
     updateInvoiceItem,
     deleteInvoice,

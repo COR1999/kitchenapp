@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
-import { Invoice, ScanResult } from '../types/invoice';
+import React, { useState, useEffect } from 'react';
+import { Invoice, ScanResult, DuplicateCheckResult } from '../types/invoice';
 import InvoiceCard from './InvoiceCard';
 import InvoiceDetails from './InvoiceDetails';
 import InvoiceScanner from './InvoiceScanner';
 import InvoiceEditor from './InvoiceEditor';
 import CreditNoteManager from './CreditNoteManager';
 import FoodTraceability from './FoodTraceability';
-import DuplicateInvoiceDialog from './DuplicateInvoiceDialog';
-import SpellCheckDialog from './SpellCheckDialog';
+import DuplicateInvoiceModal from './DuplicateInvoiceModal';
 import { useInvoices } from '../hooks/useInvoicesDB';
-import { DuplicateDetectionService, DuplicateCheckResult } from '../services/duplicateDetectionService';
-import { SpellCheckService, SpellCheckResult, SpellCheckSuggestion } from '../services/spellCheckService';
 import { DateUtils } from '../utils/dateUtils';
 import { Button } from './ui';
 import { currentTheme } from '../theme';
@@ -21,6 +18,7 @@ const Dashboard: React.FC = () => {
     creditNotes, 
     loading, 
     addInvoice,
+    checkDuplicates,
     updateInvoice, 
     updateInvoiceItem, 
     addCreditNote,
@@ -36,8 +34,7 @@ const Dashboard: React.FC = () => {
   const [weekFilter, setWeekFilter] = useState<string>('current'); // Default to current week
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null);
   const [pendingScanResult, setPendingScanResult] = useState<{ scanResult: ScanResult; imageFile: File } | null>(null);
-  const [spellCheckResult, setSpellCheckResult] = useState<SpellCheckResult | null>(null);
-  const [pendingInvoiceForSpellCheck, setPendingInvoiceForSpellCheck] = useState<{ invoice: Partial<Invoice>; imageFile: File } | null>(null);
+
 
   const filteredInvoices = invoices.filter(invoice => {
     // Filter by status
@@ -69,7 +66,7 @@ const Dashboard: React.FC = () => {
     try {
       // Check for duplicates if scan was successful
       if (scanResult.success && scanResult.invoice) {
-        const duplicateResult = DuplicateDetectionService.checkForDuplicates(scanResult, invoices);
+        const duplicateResult = checkDuplicates(scanResult);
         
         if (duplicateResult.isDuplicate) {
           // Show duplicate confirmation dialog
@@ -78,20 +75,9 @@ const Dashboard: React.FC = () => {
           setShowScanner(false);
           return;
         }
-        
-        // No duplicates found, check for spelling errors
-        const spellResult = SpellCheckService.checkInvoiceSpelling(scanResult.invoice);
-        
-        if (spellResult.hasErrors) {
-          // Show spell check dialog
-          setSpellCheckResult(spellResult);
-          setPendingInvoiceForSpellCheck({ invoice: scanResult.invoice, imageFile });
-          setShowScanner(false);
-          return;
-        }
       }
       
-      // No duplicates or spelling errors found, proceed with adding the invoice
+      // No duplicates found, proceed with adding the invoice
       addInvoice(scanResult, imageFile);
       setShowScanner(false);
     } catch (error) {
@@ -125,39 +111,29 @@ const Dashboard: React.FC = () => {
   };
 
   const handleDuplicateProceedAnyway = () => {
-    if (pendingScanResult && pendingScanResult.scanResult.invoice) {
-      // After proceeding with duplicate, check for spelling errors
-      const spellResult = SpellCheckService.checkInvoiceSpelling(pendingScanResult.scanResult.invoice);
-      
-      if (spellResult.hasErrors) {
-        // Show spell check dialog
-        setSpellCheckResult(spellResult);
-        setPendingInvoiceForSpellCheck({ invoice: pendingScanResult.scanResult.invoice, imageFile: pendingScanResult.imageFile });
+    if (pendingScanResult) {
+      try {
+        // Force save the invoice despite duplicates
+        addInvoice(pendingScanResult.scanResult, pendingScanResult.imageFile, true);
         setDuplicateCheckResult(null);
         setPendingScanResult(null);
-        return;
+      } catch (error) {
+        console.error('Failed to save duplicate invoice:', error);
+        alert('Failed to save invoice. Please try again.');
       }
-      
-      // No spelling errors, add the invoice
-      addInvoice(pendingScanResult.scanResult, pendingScanResult.imageFile);
+    }
+  };
+
+
+  const handleDuplicateViewExisting = (invoiceId: string) => {
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      setSelectedInvoice(invoice);
       setDuplicateCheckResult(null);
       setPendingScanResult(null);
     }
   };
 
-  const handleDuplicateSkip = () => {
-    setDuplicateCheckResult(null);
-    setPendingScanResult(null);
-  };
-
-  const handleDuplicateViewExisting = (invoiceId: string) => {
-    const existingInvoice = invoices.find(inv => inv.id === invoiceId);
-    if (existingInvoice) {
-      setSelectedInvoice(existingInvoice);
-    }
-    setDuplicateCheckResult(null);
-    setPendingScanResult(null);
-  };
 
   const handleDuplicateCancel = () => {
     setDuplicateCheckResult(null);
@@ -165,43 +141,6 @@ const Dashboard: React.FC = () => {
     setShowScanner(true); // Go back to scanner
   };
 
-  const handleSpellCheckApply = (correctedInvoice: Partial<Invoice>, appliedSuggestions: SpellCheckSuggestion[]) => {
-    if (pendingInvoiceForSpellCheck) {
-      // Create a scan result with the corrected invoice
-      const correctedScanResult: ScanResult = {
-        success: true,
-        confidence: 0.8, // Spell-corrected confidence
-        rawText: '', // Not needed for spell-corrected invoices
-        invoice: correctedInvoice
-      };
-      
-      addInvoice(correctedScanResult, pendingInvoiceForSpellCheck.imageFile);
-      setSpellCheckResult(null);
-      setPendingInvoiceForSpellCheck(null);
-    }
-  };
-
-  const handleSpellCheckSkip = () => {
-    if (pendingInvoiceForSpellCheck) {
-      // Add the original invoice without corrections
-      const originalScanResult: ScanResult = {
-        success: true,
-        confidence: 0.6, // Lower confidence for uncorrected handwritten text
-        rawText: '',
-        invoice: pendingInvoiceForSpellCheck.invoice
-      };
-      
-      addInvoice(originalScanResult, pendingInvoiceForSpellCheck.imageFile);
-      setSpellCheckResult(null);
-      setPendingInvoiceForSpellCheck(null);
-    }
-  };
-
-  const handleSpellCheckCancel = () => {
-    setSpellCheckResult(null);
-    setPendingInvoiceForSpellCheck(null);
-    setShowScanner(true); // Go back to scanner
-  };
 
   if (loading) {
     return (
@@ -510,25 +449,16 @@ const Dashboard: React.FC = () => {
       )}
 
       {duplicateCheckResult && pendingScanResult && (
-        <DuplicateInvoiceDialog
+        <DuplicateInvoiceModal
+          isOpen={true}
+          duplicates={duplicateCheckResult.duplicates}
           scanResult={pendingScanResult.scanResult}
-          duplicateResult={duplicateCheckResult}
           onProceedAnyway={handleDuplicateProceedAnyway}
-          onSkip={handleDuplicateSkip}
-          onViewExisting={handleDuplicateViewExisting}
           onCancel={handleDuplicateCancel}
+          onViewExisting={handleDuplicateViewExisting}
         />
       )}
 
-      {spellCheckResult && pendingInvoiceForSpellCheck && (
-        <SpellCheckDialog
-          originalInvoice={pendingInvoiceForSpellCheck.invoice}
-          spellCheckResult={spellCheckResult}
-          onApplyCorrections={handleSpellCheckApply}
-          onSkipCorrections={handleSpellCheckSkip}
-          onCancel={handleSpellCheckCancel}
-        />
-      )}
     </div>
   );
 };
